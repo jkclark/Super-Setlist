@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "pnpm --filter frontend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "dev": "pnpm dev:backend & pnpm dev:frontend",
     "clean": "rm -rf node_modules **/node_modules",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

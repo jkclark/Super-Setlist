@@ -1,16 +1,32 @@
-// A simple interface that can be used across frontend and backend
-export interface User {
-  id: string
+export interface SpotifyUser {
+  displayName: string
+  avatarUrl: string | null
+}
+
+export interface ArtistSearchResult {
+  spotifyId: string
   name: string
-  email: string
+  imageUrl: string | null
 }
 
-// A utility function that can be used in both frontend and backend
-export function formatUser(user: User): string {
-  return `${user.name} <${user.email}>`
+export interface SetlistSummary {
+  setlistFmId: string
+  venueName: string
+  cityName: string
+  date: string
+  songCount: number
 }
 
-// A simple validation function
-export function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+export interface CreatePlaylistRequest {
+  artistSpotifyId: string
+  artistName: string
+  playlistName: string
+  setlistFmId: string
+}
+
+export interface CreatePlaylistResponse {
+  playlistUrl: string
+  trackCount: number
+  setlistSongsFound: number
+  setlistSongsTotal: number
 }
