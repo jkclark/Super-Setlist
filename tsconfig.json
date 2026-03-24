@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@ts-monorepo/common": ["./common/src"],
+      "@ts-monorepo/common/*": ["./common/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "**/node_modules/*"],
+  "references": [
+    {
+      "path": "./common"
+    },
+    {
+      "path": "./frontend"
+    },
+    {
+      "path": "./backend"
+    }
+  ]
+}
