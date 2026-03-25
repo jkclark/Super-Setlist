@@ -1,9 +1,9 @@
-import { useState } from "react"
 import type {
   ArtistSearchResult,
-  SetlistSummary,
   CreatePlaylistResponse,
+  SetlistSummary,
 } from "@ts-monorepo/common"
+import { useState } from "react"
 import { createPlaylist } from "../api"
 import { ArtistSearch } from "./ArtistSearch"
 import { SetlistPicker } from "./SetlistPicker"
@@ -11,8 +11,9 @@ import { SetlistPicker } from "./SetlistPicker"
 export function PlaylistForm() {
   const [selectedArtist, setSelectedArtist] =
     useState<ArtistSearchResult | null>(null)
-  const [selectedSetlist, setSelectedSetlist] =
-    useState<SetlistSummary | null>(null)
+  const [selectedSetlist, setSelectedSetlist] = useState<SetlistSummary | null>(
+    null,
+  )
   const [playlistName, setPlaylistName] = useState("")
   const [creating, setCreating] = useState(false)
   const [result, setResult] = useState<CreatePlaylistResponse | null>(null)
@@ -44,7 +45,6 @@ export function PlaylistForm() {
 
     try {
       const response = await createPlaylist({
-        artistSpotifyId: selectedArtist.spotifyId,
         artistName: selectedArtist.name,
         playlistName: playlistName.trim(),
         setlistFmId: selectedSetlist.setlistFmId,
@@ -110,17 +110,13 @@ export function PlaylistForm() {
             rel="noopener noreferrer"
             className="btn btn-sm btn-primary mt-2"
           >
-            Open in Spotify
+            Open in YouTube
           </a>
         </div>
       )}
 
       {selectedSetlist && !result && (
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={!canSubmit}
-        >
+        <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
           {creating ? (
             <>
               <span className="loading loading-spinner loading-sm" />

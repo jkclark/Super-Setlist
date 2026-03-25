@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react"
 import type { ArtistSearchResult } from "@ts-monorepo/common"
+import { useEffect, useRef, useState } from "react"
 import { searchArtists } from "../api"
 
 interface ArtistSearchProps {
@@ -62,14 +62,7 @@ export function ArtistSearch({
 
   if (selectedArtist) {
     return (
-      <div className="flex items-center gap-3 rounded-lg bg-base-200 p-3">
-        {selectedArtist.imageUrl && (
-          <img
-            src={selectedArtist.imageUrl}
-            alt={selectedArtist.name}
-            className="h-10 w-10 rounded-full object-cover"
-          />
-        )}
+      <div className="bg-base-200 flex items-center gap-3 rounded-lg p-3">
         <span className="font-semibold">{selectedArtist.name}</span>
         <button
           className="btn btn-ghost btn-xs ml-auto"
@@ -96,13 +89,13 @@ export function ArtistSearch({
         onFocus={() => results.length > 0 && setShowDropdown(true)}
       />
       {loading && (
-        <span className="loading loading-spinner loading-sm absolute right-3 top-[52px]" />
+        <span className="loading loading-spinner loading-sm absolute top-[52px] right-3" />
       )}
 
       {showDropdown && (
-        <ul className="menu dropdown-content z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-box bg-base-100 p-2 shadow-lg">
+        <ul className="menu dropdown-content rounded-box bg-base-100 z-10 mt-1 max-h-60 w-full overflow-y-auto p-2 shadow-lg">
           {results.map((artist) => (
-            <li key={artist.spotifyId}>
+            <li key={artist.mbid}>
               <button
                 className="flex items-center gap-3"
                 onClick={() => {
@@ -112,15 +105,6 @@ export function ArtistSearch({
                 }}
                 type="button"
               >
-                {artist.imageUrl ? (
-                  <img
-                    src={artist.imageUrl}
-                    alt={artist.name}
-                    className="h-8 w-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="h-8 w-8 rounded-full bg-base-300" />
-                )}
                 <span>{artist.name}</span>
               </button>
             </li>

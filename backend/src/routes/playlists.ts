@@ -1,16 +1,19 @@
+import type {
+  CreatePlaylistRequest,
+  CreatePlaylistResponse,
+} from "@ts-monorepo/common"
 import { Router } from "express"
-import type { CreatePlaylistRequest, CreatePlaylistResponse } from "@ts-monorepo/common"
-import { getValidTokens, spotifyFetch, requireAuth } from "../utils/spotify"
 import { getSetlistSongs } from "../utils/setlistfm"
+import { getValidTokens, requireAuth, youtubeFetch } from "../utils/youtube"
 
 export const playlistRoutes: Router = Router()
 
 playlistRoutes.post("/", requireAuth, async (req, res) => {
   const body = req.body as CreatePlaylistRequest
 
-  if (!body.artistSpotifyId || !body.playlistName || !body.setlistFmId) {
+  if (!body.artistName || !body.playlistName || !body.setlistFmId) {
     res.status(400).json({
-      error: "artistSpotifyId, playlistName, and setlistFmId are required",
+      error: "artistName, playlistName, and setlistFmId are required",
     })
     return
   }
@@ -26,124 +29,107 @@ playlistRoutes.post("/", requireAuth, async (req, res) => {
     const setlistSongs = await getSetlistSongs(body.setlistFmId)
     const setlistSongsTotal = setlistSongs.length
 
-    // 2. Search Spotify for each setlist song
-    const setlistTrackUris: string[] = []
+    // 2. Search YouTube for each setlist song
+    const setlistVideoIds: string[] = []
     for (const song of setlistSongs) {
       try {
-        // Try performing artist first, then original artist for covers
-        const searchArtist = body.artistName
-        const query = `track:${song.name} artist:${searchArtist}`
-        const data = await spotifyFetch(
+        const searchArtist = song.originalArtist || body.artistName
+        const query = `${searchArtist} ${song.name} audio`
+        const data = await youtubeFetch(
           tokens.accessToken,
-          `/search?${new URLSearchParams({ q: query, type: "track", limit: "1" })}`
+          `/search?${new URLSearchParams({
+            part: "snippet",
+            q: query,
+            type: "video",
+            videoCategoryId: "10", // Music category
+            maxResults: "1",
+          })}`,
         )
 
-        if (data.tracks?.items?.length > 0) {
-          setlistTrackUris.push(data.tracks.items[0].uri)
-        } else if (song.originalArtist) {
-          // Fallback: search by original artist for covers
-          const coverQuery = `track:${song.name} artist:${song.originalArtist}`
-          const coverData = await spotifyFetch(
-            tokens.accessToken,
-            `/search?${new URLSearchParams({ q: coverQuery, type: "track", limit: "1" })}`
-          )
-          if (coverData.tracks?.items?.length > 0) {
-            setlistTrackUris.push(coverData.tracks.items[0].uri)
-          }
+        if (data.items?.length > 0) {
+          setlistVideoIds.push(data.items[0].id.videoId)
         }
       } catch (err) {
-        console.warn(`Could not find track: ${song.name}`, err)
+        console.warn(`Could not find video: ${song.name}`, err)
       }
     }
 
-    // 3. Get extra songs from the artist (top tracks + album tracks)
-    const extraCount = Math.min(
-      Math.ceil(setlistSongsTotal * 0.5),
-      10
-    )
+    // 3. Get extra songs from the artist
+    const extraCount = Math.min(Math.ceil(setlistSongsTotal * 0.5), 10)
+    const extraVideoIds: string[] = []
+    const usedIds = new Set(setlistVideoIds)
 
-    const extraTrackUris: string[] = []
-    const usedUris = new Set(setlistTrackUris)
-
-    // Fetch top tracks
     try {
-      const topTracks = await spotifyFetch(
+      const data = await youtubeFetch(
         tokens.accessToken,
-        `/artists/${body.artistSpotifyId}/top-tracks`
+        `/search?${new URLSearchParams({
+          part: "snippet",
+          q: `${body.artistName} songs`,
+          type: "video",
+          videoCategoryId: "10",
+          maxResults: String(extraCount + setlistVideoIds.length),
+        })}`,
       )
-      for (const track of topTracks.tracks || []) {
-        if (!usedUris.has(track.uri) && extraTrackUris.length < extraCount) {
-          extraTrackUris.push(track.uri)
-          usedUris.add(track.uri)
+
+      for (const item of data.items || []) {
+        const videoId = item.id.videoId
+        if (!usedIds.has(videoId) && extraVideoIds.length < extraCount) {
+          extraVideoIds.push(videoId)
+          usedIds.add(videoId)
         }
       }
     } catch (err) {
-      console.warn("Failed to fetch top tracks:", err)
-    }
-
-    // If we still need more, fetch from albums
-    if (extraTrackUris.length < extraCount) {
-      try {
-        const albums = await spotifyFetch(
-          tokens.accessToken,
-          `/artists/${body.artistSpotifyId}/albums?${new URLSearchParams({
-            include_groups: "album",
-            limit: "5",
-          })}`
-        )
-
-        for (const album of albums.items || []) {
-          if (extraTrackUris.length >= extraCount) break
-
-          const albumTracks = await spotifyFetch(
-            tokens.accessToken,
-            `/albums/${album.id}/tracks?limit=50`
-          )
-
-          for (const track of albumTracks.items || []) {
-            if (!usedUris.has(track.uri) && extraTrackUris.length < extraCount) {
-              extraTrackUris.push(track.uri)
-              usedUris.add(track.uri)
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to fetch album tracks:", err)
-      }
+      console.warn("Failed to fetch extra songs:", err)
     }
 
     // 4. Combine and shuffle
-    const allTrackUris = [...setlistTrackUris, ...extraTrackUris]
-    shuffleArray(allTrackUris)
+    const allVideoIds = [...setlistVideoIds, ...extraVideoIds]
+    shuffleArray(allVideoIds)
 
-    // 5. Create playlist
-    const me = await spotifyFetch(tokens.accessToken, "/me")
-    const playlist = await spotifyFetch(
+    // 5. Create YouTube playlist
+    const playlist = await youtubeFetch(
       tokens.accessToken,
-      `/users/${me.id}/playlists`,
+      "/playlists?part=snippet,status",
       {
         method: "POST",
         body: JSON.stringify({
-          name: body.playlistName,
-          description: `Concert prep playlist generated by Super Setlist`,
-          public: false,
+          snippet: {
+            title: body.playlistName,
+            description: "Concert prep playlist generated by Super Setlist",
+          },
+          status: {
+            privacyStatus: "private",
+          },
         }),
-      }
+      },
     )
 
-    // 6. Add tracks (Spotify allows max 100 per request)
-    for (let i = 0; i < allTrackUris.length; i += 100) {
-      const batch = allTrackUris.slice(i, i + 100)
-      await spotifyFetch(tokens.accessToken, `/playlists/${playlist.id}/tracks`, {
-        method: "POST",
-        body: JSON.stringify({ uris: batch }),
-      })
+    // 6. Add videos to playlist
+    let addedCount = 0
+    for (const videoId of allVideoIds) {
+      try {
+        await youtubeFetch(tokens.accessToken, "/playlistItems?part=snippet", {
+          method: "POST",
+          body: JSON.stringify({
+            snippet: {
+              playlistId: playlist.id,
+              resourceId: {
+                kind: "youtube#video",
+                videoId,
+              },
+            },
+          }),
+        })
+        addedCount++
+      } catch (err) {
+        console.warn(`Failed to add video ${videoId} to playlist:`, err)
+      }
     }
 
     const response: CreatePlaylistResponse = {
-      playlistUrl: playlist.external_urls?.spotify || "",
-      trackCount: allTrackUris.length,
-      setlistSongsFound: setlistTrackUris.length,
+      playlistUrl: `https://www.youtube.com/playlist?list=${playlist.id}`,
+      trackCount: addedCount,
+      setlistSongsFound: setlistVideoIds.length,
       setlistSongsTotal,
     }
 

@@ -1,9 +1,9 @@
 import type {
-  SpotifyUser,
   ArtistSearchResult,
-  SetlistSummary,
   CreatePlaylistRequest,
   CreatePlaylistResponse,
+  SetlistSummary,
+  UserProfile,
 } from "@ts-monorepo/common"
 
 const API_BASE = "/api"
@@ -29,8 +29,8 @@ async function apiFetch<T>(
   return response.json()
 }
 
-export async function getMe(): Promise<SpotifyUser> {
-  return apiFetch<SpotifyUser>("/auth/me")
+export async function getMe(): Promise<UserProfile> {
+  return apiFetch<UserProfile>("/auth/me")
 }
 
 export async function logout(): Promise<void> {

@@ -1,6 +1,6 @@
 import { Router } from "express"
-import { requireAuth } from "../utils/spotify"
 import { searchSetlists } from "../utils/setlistfm"
+import { requireAuth } from "../utils/youtube"
 
 export const setlistRoutes: Router = Router()
 

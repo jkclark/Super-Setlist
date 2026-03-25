@@ -48,7 +48,7 @@ function App() {
               </h2>
               <p className="text-base-content/70 mb-4 text-sm">
                 Search for an artist, pick a recent setlist, and we'll create a
-                shuffled Spotify playlist with the setlist songs plus extras —
+                shuffled YouTube playlist with the setlist songs plus extras —
                 so you can learn all the songs without spoiling the order.
               </p>
               <PlaylistForm />
@@ -59,11 +59,11 @@ function App() {
             <div className="card-body items-center text-center">
               <h1 className="card-title text-2xl">🎸 Super Setlist</h1>
               <p className="text-base-content/70">
-                Get ready for your next concert. Create a shuffled Spotify
+                Get ready for your next concert. Create a shuffled YouTube
                 playlist from an artist's setlist — without spoiling the order.
               </p>
               <button className="btn btn-primary mt-4" onClick={login}>
-                Log in with Spotify
+                Log in with Google
               </button>
             </div>
           </div>

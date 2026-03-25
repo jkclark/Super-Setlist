@@ -1,6 +1,6 @@
 import type { ArtistSearchResult } from "@ts-monorepo/common"
 import { Router } from "express"
-import { getValidTokens, requireAuth, spotifyFetch } from "../utils/spotify"
+import { requireAuth } from "../utils/youtube"
 
 export const artistRoutes: Router = Router()
 
@@ -11,25 +11,37 @@ artistRoutes.get("/search", requireAuth, async (req, res) => {
     return
   }
 
-  const tokens = await getValidTokens(req, res)
-  if (!tokens) {
-    res.status(401).json({ error: "Not authenticated" })
-    return
-  }
-
   try {
-    const data = await spotifyFetch(
-      tokens.accessToken,
-      `/search?${new URLSearchParams({ q: query, type: "artist", limit: "8" })}`,
+    const response = await fetch(
+      `https://api.setlist.fm/rest/1.0/search/artists?${new URLSearchParams({
+        artistName: query,
+        p: "1",
+        sort: "relevance",
+      })}`,
+      {
+        headers: {
+          Accept: "application/json",
+          "x-api-key": process.env.SETLISTFM_API_KEY || "",
+        },
+      },
     )
 
-    const artists: ArtistSearchResult[] = (data.artists?.items || []).map(
-      (artist: any) => ({
-        spotifyId: artist.id,
-        name: artist.name,
-        imageUrl: artist.images?.[0]?.url || null,
-      }),
-    )
+    if (!response.ok) {
+      if (response.status === 404) {
+        res.json([])
+        return
+      }
+      throw new Error(`setlist.fm error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    const artists: ArtistSearchResult[] = (data.artist || [])
+      .filter((a: any) => a.mbid)
+      .slice(0, 8)
+      .map((a: any) => ({
+        mbid: a.mbid,
+        name: a.name,
+      }))
 
     res.json(artists)
   } catch (err) {

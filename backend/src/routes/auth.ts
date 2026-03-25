@@ -1,21 +1,21 @@
-import type { SpotifyUser } from "@ts-monorepo/common"
+import type { UserProfile } from "@ts-monorepo/common"
 import { Router } from "express"
 import {
   clearTokenCookie,
   exchangeCodeForTokens,
-  getSpotifyAuthUrl,
+  getGoogleAuthUrl,
   getValidTokens,
   setTokenCookie,
-  spotifyFetch,
-} from "../utils/spotify"
+  youtubeFetch,
+} from "../utils/youtube"
 
 export const authRoutes: Router = Router()
 
-authRoutes.get("/spotify/login", (_req, res) => {
-  res.redirect(getSpotifyAuthUrl())
+authRoutes.get("/google/login", (_req, res) => {
+  res.redirect(getGoogleAuthUrl())
 })
 
-authRoutes.get("/spotify/callback", async (req, res) => {
+authRoutes.get("/google/callback", async (req, res) => {
   const code = req.query.code as string | undefined
   const error = req.query.error as string | undefined
 
@@ -29,7 +29,7 @@ authRoutes.get("/spotify/callback", async (req, res) => {
   try {
     const tokens = await exchangeCodeForTokens(code)
     setTokenCookie(res, tokens)
-    res.redirect(process.env.FRONTEND_URL || "http://localhost:3001")
+    res.redirect(process.env.FRONTEND_URL || "http://127.0.0.1:3001")
   } catch (err) {
     console.error("OAuth callback error:", err)
     res.redirect(
@@ -46,15 +46,19 @@ authRoutes.get("/me", async (req, res) => {
   }
 
   try {
-    const profile = await spotifyFetch(tokens.accessToken, "/me")
-    const user: SpotifyUser = {
-      displayName: profile.display_name || "Spotify User",
-      avatarUrl: profile.images?.[0]?.url || null,
+    const data = await youtubeFetch(
+      tokens.accessToken,
+      "/channels?part=snippet&mine=true",
+    )
+    const channel = data.items?.[0]
+    const user: UserProfile = {
+      displayName: channel?.snippet?.title || "YouTube User",
+      avatarUrl: channel?.snippet?.thumbnails?.default?.url || null,
     }
     res.json(user)
   } catch (err) {
     console.error("Failed to fetch profile:", err)
-    res.status(500).json({ error: "Failed to fetch Spotify profile" })
+    res.status(500).json({ error: "Failed to fetch YouTube profile" })
   }
 })
 

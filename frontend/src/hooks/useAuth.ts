@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react"
-import type { SpotifyUser } from "@ts-monorepo/common"
-import { getMe, logout as apiLogout } from "../api"
+import type { UserProfile } from "@ts-monorepo/common"
+import { useCallback, useEffect, useState } from "react"
+import { logout as apiLogout, getMe } from "../api"
 
 interface AuthState {
-  user: SpotifyUser | null
+  user: UserProfile | null
   loading: boolean
   error: string | null
 }
@@ -29,7 +29,7 @@ export function useAuth() {
   }, [checkAuth])
 
   const login = () => {
-    window.location.href = "/api/auth/spotify/login"
+    window.location.href = "/api/auth/google/login"
   }
 
   const logout = async () => {

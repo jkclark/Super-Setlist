@@ -1,12 +1,11 @@
-export interface SpotifyUser {
+export interface UserProfile {
   displayName: string
   avatarUrl: string | null
 }
 
 export interface ArtistSearchResult {
-  spotifyId: string
+  mbid: string
   name: string
-  imageUrl: string | null
 }
 
 export interface SetlistSummary {
@@ -18,7 +17,6 @@ export interface SetlistSummary {
 }
 
 export interface CreatePlaylistRequest {
-  artistSpotifyId: string
   artistName: string
   playlistName: string
   setlistFmId: string
